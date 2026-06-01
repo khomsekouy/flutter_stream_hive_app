@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_stream_hive_app/features/live_stream/live_stream.dart';
+import 'package:flutter_stream_hive_app/core/router/app_router.dart';
+import 'package:flutter_stream_hive_app/core/theme/theme.dart';
 import 'package:flutter_stream_hive_app/l10n/l10n.dart';
 
 class App extends StatelessWidget {
@@ -7,18 +8,12 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'StreamHive',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6C2BD9),
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.dark,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      home: const LiveStreamPage(),
+      routerConfig: AppRouter.router,
     );
   }
 }

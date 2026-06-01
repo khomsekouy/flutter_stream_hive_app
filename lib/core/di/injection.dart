@@ -3,11 +3,14 @@ import 'package:flutter_stream_hive_app/core/network/dio_client.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/data/datasources/live_stream_remote_data_source.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/data/datasources/live_stream_ws_data_source.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/data/repositories/live_stream_repository_impl.dart';
+import 'package:flutter_stream_hive_app/features/live_stream/domain/entities/live_stream.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/domain/repositories/live_stream_repository.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/domain/usecases/get_live_streams.dart';
+import 'package:flutter_stream_hive_app/features/live_stream/domain/usecases/get_stream_by_id.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/domain/usecases/watch_match_score.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/presentation/cubit/live_stream_cubit.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/presentation/cubit/match_score_cubit.dart';
+import 'package:flutter_stream_hive_app/features/live_stream/presentation/cubit/stream_detail_cubit.dart';
 import 'package:get_it/get_it.dart';
 
 /// The service locator — our single composition root.
@@ -39,11 +42,19 @@ Future<void> configureDependencies() async {
     )
     // ---- Use cases ----
     ..registerFactory(() => GetLiveStreams(getIt()))
+    ..registerFactory(() => GetStreamById(getIt()))
     ..registerFactory(() => WatchMatchScore(getIt()))
     // ---- Presentation (cubits) ----
     ..registerFactory(() => LiveStreamCubit(getLiveStreams: getIt()))
     ..registerFactoryParam<MatchScoreCubit, String, void>(
       (matchId, _) =>
           MatchScoreCubit(watchMatchScore: getIt(), matchId: matchId),
+    )
+    ..registerFactoryParam<StreamDetailCubit, String, LiveStream?>(
+      (streamId, initial) => StreamDetailCubit(
+        getStreamById: getIt(),
+        streamId: streamId,
+        initial: initial,
+      ),
     );
 }

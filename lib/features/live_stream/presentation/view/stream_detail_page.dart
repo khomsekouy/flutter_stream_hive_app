@@ -1,53 +1,104 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_stream_hive_app/core/di/injection.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/domain/entities/live_stream.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/presentation/cubit/match_score_cubit.dart';
+import 'package:flutter_stream_hive_app/features/live_stream/presentation/cubit/stream_detail_cubit.dart';
 
-/// Detail / watch screen for a single stream.
+/// Detail / watch screen for a single stream, reached via `/stream/:id`.
 ///
-/// Demonstrates the **real-time** path: it provides a [MatchScoreCubit] (built
-/// by DI with the match id as a parameter) and starts the subscription. The
-/// video player itself is a placeholder — drop in `media_kit` / `video_player`
-/// here, fed by `stream.hlsUrl`.
+/// [StreamDetailCubit] resolves the stream: instantly from [initialStream] when
+/// navigated from the list, or fetched by [streamId] on a cold deep link. Once
+/// resolved, [_StreamDetailContent] renders the player + live score.
 class StreamDetailPage extends StatelessWidget {
-  const StreamDetailPage({required this.stream, super.key});
+  const StreamDetailPage({
+    required this.streamId,
+    this.initialStream,
+    super.key,
+  });
+
+  final String streamId;
+  final LiveStream? initialStream;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) {
+        final cubit = getIt<StreamDetailCubit>(
+          param1: streamId,
+          param2: initialStream,
+        );
+        unawaited(cubit.load());
+        return cubit;
+      },
+      child: const StreamDetailView(),
+    );
+  }
+}
+
+class StreamDetailView extends StatelessWidget {
+  const StreamDetailView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<StreamDetailCubit, StreamDetailState>(
+      builder: (context, state) {
+        final stream = state.stream;
+        return Scaffold(
+          appBar: AppBar(title: Text(stream?.title ?? 'Stream')),
+          body: switch (state.status) {
+            StreamDetailStatus.initial ||
+            StreamDetailStatus.loading => const Center(
+              child: CircularProgressIndicator(),
+            ),
+            StreamDetailStatus.failure => Center(
+              child: Text(state.errorMessage ?? 'Could not load this stream.'),
+            ),
+            StreamDetailStatus.success => _StreamDetailContent(stream: stream!),
+          },
+        );
+      },
+    );
+  }
+}
+
+class _StreamDetailContent extends StatelessWidget {
+  const _StreamDetailContent({required this.stream});
 
   final LiveStream stream;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(stream.title)),
-      body: ListView(
-        children: [
-          const _PlayerPlaceholder(),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  stream.title,
-                  style: Theme.of(context).textTheme.headlineSmall,
+    return ListView(
+      children: [
+        const _PlayerPlaceholder(),
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                stream.title,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                stream.competition ?? stream.sport,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 24),
+              if (stream.hasMatch)
+                BlocProvider(
+                  create: (_) =>
+                      getIt<MatchScoreCubit>(param1: stream.id)..start(),
+                  child: _LiveScore(stream: stream),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  stream.competition ?? stream.sport,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 24),
-                if (stream.hasMatch)
-                  BlocProvider(
-                    create: (_) =>
-                        getIt<MatchScoreCubit>(param1: stream.id)..start(),
-                    child: _LiveScore(stream: stream),
-                  ),
-              ],
-            ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
