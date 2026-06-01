@@ -3,9 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_stream_hive_app/core/di/injection.dart';
+import 'package:flutter_stream_hive_app/core/router/app_router.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/presentation/cubit/live_stream_cubit.dart';
-import 'package:flutter_stream_hive_app/features/live_stream/presentation/view/stream_detail_page.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/presentation/widgets/stream_card.dart';
+import 'package:go_router/go_router.dart';
 
 /// Entry point for the feature.
 ///
@@ -69,10 +70,10 @@ class LiveStreamView extends StatelessWidget {
                     final stream = state.streams[index];
                     return StreamCard(
                       stream: stream,
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => StreamDetailPage(stream: stream),
-                        ),
+                      onTap: () => context.pushNamed(
+                        AppRoute.streamDetail,
+                        pathParameters: {'id': stream.id},
+                        extra: stream,
                       ),
                     );
                   },
