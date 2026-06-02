@@ -22,6 +22,10 @@ class LiveStream extends Equatable {
     this.homeTeam,
     this.awayTeam,
     this.startTime,
+    this.venue,
+    this.homeScore,
+    this.awayScore,
+    this.minute,
   });
 
   final String id;
@@ -42,7 +46,23 @@ class LiveStream extends Equatable {
   final String? awayTeam;
   final DateTime? startTime;
 
+  /// Where the match is played, e.g. `Royal Stadium`. Null for non-venue
+  /// streams.
+  final String? venue;
+
+  /// Current scoreline. Null until/unless the match has started; for list
+  /// views the API denormalises the live score so we don't open a socket per
+  /// row. The authoritative, ticking score still comes from `MatchScore`.
+  final int? homeScore;
+  final int? awayScore;
+
+  /// Match clock in minutes, paired with the score above.
+  final int? minute;
+
   bool get isLive => status == StreamStatus.live;
+
+  /// True when we have a scoreline to render (both sides present).
+  bool get hasScore => homeScore != null && awayScore != null;
 
   /// True only when the stream is live and has a usable playback URL.
   bool get isWatchable => isLive && hlsUrl.toString().isNotEmpty;
@@ -64,5 +84,9 @@ class LiveStream extends Equatable {
     homeTeam,
     awayTeam,
     startTime,
+    venue,
+    homeScore,
+    awayScore,
+    minute,
   ];
 }

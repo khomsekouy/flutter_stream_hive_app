@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_stream_hive_app/core/theme/theme.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/domain/entities/live_stream.dart';
+import 'package:flutter_stream_hive_app/features/live_stream/presentation/widgets/club_logo.dart';
 import 'package:flutter_stream_hive_app/gen/assets.gen.dart';
 
 /// A single tappable row in the live-stream list.
@@ -79,11 +80,6 @@ class StreamCard extends StatelessWidget {
 }
 
 /// The leading thumbnail.
-///
-/// Network thumbnails go through [CachedNetworkImage] (disk + memory cache,
-/// so fast scrolling doesn't re-download). It degrades gracefully: a spinner
-/// while loading, and [_Fallback] (a bundled placeholder asset under the sport
-/// icon) when the URL is missing or the download fails.
 class _StreamThumbnail extends StatelessWidget {
   const _StreamThumbnail({required this.stream});
 
@@ -93,6 +89,12 @@ class _StreamThumbnail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final home = ClubLogo.forTeam(stream.homeTeam);
+    final away = ClubLogo.forTeam(stream.awayTeam);
+    if (home != null && away != null) {
+      return _CrestPair(home: home, away: away, size: _size);
+    }
+
     final url = stream.thumbnailUrl?.toString();
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
@@ -121,11 +123,43 @@ class _StreamThumbnail extends StatelessWidget {
   }
 }
 
+/// Two overlapping club crests — home in front, away tucked behind to the
+/// right — for a "home vs away" motif within the square leading slot.
+class _CrestPair extends StatelessWidget {
+  const _CrestPair({
+    required this.home,
+    required this.away,
+    required this.size,
+  });
+
+  final AssetGenImage home;
+  final AssetGenImage away;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final crest = size * 0.62;
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        children: [
+          Align(
+            alignment: Alignment.topRight,
+            child: away.image(width: crest, height: crest, fit: BoxFit.contain),
+          ),
+          Align(
+            alignment: Alignment.bottomLeft,
+            child: home.image(width: crest, height: crest, fit: BoxFit.contain),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Shown when there is no thumbnail, or the network image fails to load.
-///
-/// Uses the bundled placeholder via flutter_gen's type-safe
-/// `Assets.images.streamPlaceholder` — no magic-string paths — with the sport
-/// icon overlaid through a translucent scrim.
+
 class _Fallback extends StatelessWidget {
   const _Fallback({required this.sport});
 

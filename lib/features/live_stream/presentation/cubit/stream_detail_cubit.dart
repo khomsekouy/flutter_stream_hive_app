@@ -6,12 +6,6 @@ import 'package:flutter_stream_hive_app/features/live_stream/domain/usecases/get
 part 'stream_detail_state.dart';
 
 /// Resolves the stream shown on the detail/watch screen.
-///
-/// Two entry paths:
-/// * **From the list** — the [LiveStream] is already in memory, passed to the
-///   constructor as `initial`. We seed `success` immediately, no network.
-/// * **Deep link** — only an id arrived in the URL, so `initial` is null and
-///   [load] fetches it via [GetStreamById].
 class StreamDetailCubit extends Cubit<StreamDetailState> {
   StreamDetailCubit({
     required GetStreamById getStreamById,

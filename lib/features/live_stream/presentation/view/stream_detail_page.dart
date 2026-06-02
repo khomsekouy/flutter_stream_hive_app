@@ -8,10 +8,6 @@ import 'package:flutter_stream_hive_app/features/live_stream/presentation/cubit/
 import 'package:flutter_stream_hive_app/features/live_stream/presentation/cubit/stream_detail_cubit.dart';
 
 /// Detail / watch screen for a single stream, reached via `/stream/:id`.
-///
-/// [StreamDetailCubit] resolves the stream: instantly from [initialStream] when
-/// navigated from the list, or fetched by [streamId] on a cold deep link. Once
-/// resolved, [_StreamDetailContent] renders the player + live score.
 class StreamDetailPage extends StatelessWidget {
   const StreamDetailPage({
     required this.streamId,

@@ -4,15 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_stream_hive_app/core/di/injection.dart';
 import 'package:flutter_stream_hive_app/core/router/app_router.dart';
+import 'package:flutter_stream_hive_app/core/theme/theme.dart';
+import 'package:flutter_stream_hive_app/features/live_stream/domain/entities/live_stream.dart';
+import 'package:flutter_stream_hive_app/features/live_stream/presentation/content/home_content.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/presentation/cubit/live_stream_cubit.dart';
-import 'package:flutter_stream_hive_app/features/live_stream/presentation/widgets/stream_card.dart';
+import 'package:flutter_stream_hive_app/features/live_stream/presentation/widgets/featured_carousel.dart';
+import 'package:flutter_stream_hive_app/features/live_stream/presentation/widgets/home_chrome.dart';
+import 'package:flutter_stream_hive_app/features/live_stream/presentation/widgets/home_sections.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 /// Entry point for the feature.
-///
-/// The page's only job is wiring: pull a fully-built [LiveStreamCubit] from the
-/// DI container and kick off the initial load. The [LiveStreamView] below is a
-/// pure function of state and is what we'd test in isolation.
+
 class LiveStreamPage extends StatelessWidget {
   const LiveStreamPage({super.key});
 
@@ -29,20 +32,83 @@ class LiveStreamPage extends StatelessWidget {
   }
 }
 
-class LiveStreamView extends StatelessWidget {
+/// The home dashboard: hero carousel, live & upcoming matches, a league
+/// filter, highlights and news, under a branded app bar and bottom nav.
+class LiveStreamView extends StatefulWidget {
   const LiveStreamView({super.key});
+
+  @override
+  State<LiveStreamView> createState() => _LiveStreamViewState();
+}
+
+class _LiveStreamViewState extends State<LiveStreamView> {
+  static const List<HomeNavItem> _navItems = [
+    HomeNavItem(icon: Icons.home_filled, label: 'Home'),
+    HomeNavItem(icon: Icons.calendar_today, label: 'Matches'),
+    HomeNavItem(icon: Icons.play_circle_outline, label: 'Highlights'),
+    HomeNavItem(icon: Icons.person_outline, label: 'Profile'),
+  ];
+
+  int _league = 0;
+  int _navIndex = 0;
+
+  bool _matchesLeague(LiveStream s) {
+    final competition = kLeagueFilters[_league].competition;
+    return competition == null || s.competition == competition;
+  }
+
+  void _openDetail(LiveStream stream) => context.pushNamed(
+    AppRoute.streamDetail,
+    pathParameters: {'id': stream.id},
+    extra: stream,
+  );
+
+  void _comingSoon(String label) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('$label — coming soon'),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Live now'),
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        titleSpacing: 16,
+        title: const SportLiveLogo(),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => context.read<LiveStreamCubit>().loadLiveStreams(),
+            onPressed: () => _comingSoon('Search'),
+            icon: const Icon(Icons.search, color: AppColors.white),
           ),
+          NotificationBell(
+            count: 3,
+            onPressed: () => _comingSoon('Notifications'),
+          ),
+          const SizedBox(width: 4),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _comingSoon('Live'),
+        backgroundColor: AppColors.live,
+        shape: const CircleBorder(),
+        child: const Icon(Icons.sensors, color: AppColors.white, size: 28),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: HomeBottomNav(
+        items: _navItems,
+        currentIndex: _navIndex,
+        onSelected: (i) {
+          setState(() => _navIndex = i);
+          if (i != 0) _comingSoon(_navItems[i].label);
+        },
       ),
       body: BlocBuilder<LiveStreamCubit, LiveStreamState>(
         builder: (context, state) {
@@ -57,30 +123,153 @@ class LiveStreamView extends StatelessWidget {
                     context.read<LiveStreamCubit>().loadLiveStreams(),
               );
             case LiveStreamStatus.success:
-              if (state.streams.isEmpty) {
-                return const Center(child: Text('No live streams right now.'));
-              }
               return RefreshIndicator(
                 onRefresh: () =>
                     context.read<LiveStreamCubit>().loadLiveStreams(),
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: state.streams.length,
-                  itemBuilder: (context, index) {
-                    final stream = state.streams[index];
-                    return StreamCard(
-                      stream: stream,
-                      onTap: () => context.pushNamed(
-                        AppRoute.streamDetail,
-                        pathParameters: {'id': stream.id},
-                        extra: stream,
-                      ),
-                    );
-                  },
+                child: _Dashboard(
+                  streams: state.streams,
+                  league: _league,
+                  matchesLeague: _matchesLeague,
+                  onLeagueSelected: (i) => setState(() => _league = i),
+                  onOpenDetail: _openDetail,
+                  onViewAll: _comingSoon,
                 ),
               );
           }
         },
+      ),
+    );
+  }
+}
+
+/// The scrollable dashboard content.
+class _Dashboard extends StatelessWidget {
+  const _Dashboard({
+    required this.streams,
+    required this.league,
+    required this.matchesLeague,
+    required this.onLeagueSelected,
+    required this.onOpenDetail,
+    required this.onViewAll,
+  });
+
+  final List<LiveStream> streams;
+  final int league;
+  final bool Function(LiveStream) matchesLeague;
+  final ValueChanged<int> onLeagueSelected;
+  final ValueChanged<LiveStream> onOpenDetail;
+  final ValueChanged<String> onViewAll;
+
+  static String _formatKickOff(DateTime? start) {
+    if (start == null) return 'Time TBD';
+    final local = start.toLocal();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final day = DateTime(local.year, local.month, local.day);
+    final diff = day.difference(today).inDays;
+    final time = DateFormat('h:mm a').format(local);
+    if (diff == 0) return 'Today, $time';
+    if (diff == 1) return 'Tomorrow, $time';
+    return '${DateFormat('EEE d MMM').format(local)}, $time';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final live = streams
+        .where((s) => s.isLive && s.hasMatch && matchesLeague(s))
+        .toList();
+    final upcoming = streams
+        .where((s) => s.status == StreamStatus.upcoming && matchesLeague(s))
+        .toList();
+
+    return ListView(
+      padding: const EdgeInsets.only(top: 8, bottom: 24),
+      children: [
+        FeaturedCarousel(
+          matches: kFeaturedMatches,
+          onTap: (_) => onViewAll('Featured match'),
+        ),
+
+        // ---- Live Now ----
+        SectionHeader(
+          title: 'Live Now',
+          onViewAll: () => onViewAll('Live Now'),
+        ),
+        if (live.isEmpty)
+          const _EmptyRow(text: 'No live matches in this league.')
+        else
+          ...live.map(
+            (s) => LiveMatchCard(match: s, onTap: () => onOpenDetail(s)),
+          ),
+
+        // ---- Upcoming Matches ----
+        SectionHeader(
+          title: 'Upcoming Matches',
+          onViewAll: () => onViewAll('Upcoming Matches'),
+        ),
+        if (upcoming.isEmpty)
+          const _EmptyRow(text: 'No upcoming matches in this league.')
+        else
+          ...upcoming.map(
+            (s) => UpcomingMatchCard(
+              match: s,
+              kickOff: _formatKickOff(s.startTime),
+              onDetails: () => onOpenDetail(s),
+            ),
+          ),
+
+        // ---- Top Leagues ----
+        const SectionHeader(title: 'Top Leagues'),
+        LeagueFilterBar(
+          filters: kLeagueFilters,
+          selected: league,
+          onSelected: onLeagueSelected,
+        ),
+
+        // ---- Highlights ----
+        SectionHeader(
+          title: 'Highlights',
+          onViewAll: () => onViewAll('Highlights'),
+        ),
+        SizedBox(
+          height: 200,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: kHighlights.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 12),
+            itemBuilder: (context, i) => HighlightCard(
+              highlight: kHighlights[i],
+              onTap: () => onViewAll('Highlight'),
+            ),
+          ),
+        ),
+
+        // ---- Latest News ----
+        SectionHeader(
+          title: 'Latest News',
+          onViewAll: () => onViewAll('Latest News'),
+        ),
+        ...kLatestNews.map(
+          (a) => NewsTile(article: a, onTap: () => onViewAll('Article')),
+        ),
+      ],
+    );
+  }
+}
+
+class _EmptyRow extends StatelessWidget {
+  const _EmptyRow({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Text(
+        text,
+        style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
       ),
     );
   }

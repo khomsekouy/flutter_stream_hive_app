@@ -19,6 +19,10 @@ class LiveStreamDto {
     this.homeTeam,
     this.awayTeam,
     this.startTime,
+    this.venue,
+    this.homeScore,
+    this.awayScore,
+    this.minute,
   });
 
   factory LiveStreamDto.fromJson(Map<String, dynamic> json) {
@@ -34,6 +38,10 @@ class LiveStreamDto {
       homeTeam: json['home_team'] as String?,
       awayTeam: json['away_team'] as String?,
       startTime: json['start_time'] as String?,
+      venue: json['venue'] as String?,
+      homeScore: (json['home_score'] as num?)?.toInt(),
+      awayScore: (json['away_score'] as num?)?.toInt(),
+      minute: (json['minute'] as num?)?.toInt(),
     );
   }
 
@@ -48,6 +56,10 @@ class LiveStreamDto {
   final String? homeTeam;
   final String? awayTeam;
   final String? startTime;
+  final String? venue;
+  final int? homeScore;
+  final int? awayScore;
+  final int? minute;
 
   LiveStream toEntity() {
     final thumbnail = thumbnailUrl;
@@ -64,6 +76,10 @@ class LiveStreamDto {
       homeTeam: homeTeam,
       awayTeam: awayTeam,
       startTime: start == null ? null : DateTime.tryParse(start),
+      venue: venue,
+      homeScore: homeScore,
+      awayScore: awayScore,
+      minute: minute,
     );
   }
 
