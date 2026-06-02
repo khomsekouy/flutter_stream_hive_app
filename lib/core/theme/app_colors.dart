@@ -16,6 +16,11 @@ abstract final class AppColors {
   static const Color primaryLight = Color(0xFF9F67FF);
   static const Color secondary = Color(0xFF00C2A8);
 
+  /// Lime green — reserved for primary call-to-action buttons ONLY
+  /// (e.g. "Get started"). The brand colour is [primary] (purple); don't use
+  /// this as a general accent.
+  static const Color cta = Color(0xFFA5E635);
+
   // ---- Neutrals (dark-first — this is a dark streaming UI) ----
   static const Color background = Color(0xFF0E0E12);
   static const Color surface = Color(0xFF1A1A22);

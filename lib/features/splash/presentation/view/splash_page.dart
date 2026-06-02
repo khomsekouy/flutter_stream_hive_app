@@ -7,10 +7,7 @@ import 'package:flutter_stream_hive_app/gen/assets.gen.dart';
 import 'package:go_router/go_router.dart';
 
 /// Animated launch screen, shown as the app's initial route.
-///
-/// The OS splash (the frame shown before Flutter boots) is necessarily static;
-/// this in-app screen is what lets us animate. The logo fades + scales in, the
-/// wordmark follows, then a timer auto-navigates to the home route.
+
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
 
@@ -53,12 +50,12 @@ class _SplashPageState extends State<SplashPage>
     );
 
     unawaited(_controller.forward());
-    _navTimer = Timer(_hold, _goHome);
+    _navTimer = Timer(_hold, _goNext);
   }
 
-  void _goHome() {
+  void _goNext() {
     if (!mounted) return;
-    context.goNamed(AppRoute.home);
+    context.goNamed(AppRoute.onboarding);
   }
 
   @override
@@ -72,7 +69,7 @@ class _SplashPageState extends State<SplashPage>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.black,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,

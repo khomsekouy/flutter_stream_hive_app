@@ -13,19 +13,10 @@ import 'package:flutter_stream_hive_app/features/live_stream/presentation/cubit/
 import 'package:flutter_stream_hive_app/features/live_stream/presentation/cubit/stream_detail_cubit.dart';
 import 'package:get_it/get_it.dart';
 
-/// The service locator — our single composition root.
-///
-/// As the outermost layer, this is the *only* place allowed to know about
-/// every other layer at once. It wires concrete implementations to the
-/// interfaces the inner layers depend on, so nothing else has to `new` up its
-/// own dependencies.
 final GetIt getIt = GetIt.instance;
 
 /// Registers every dependency. Call once from `bootstrap` before `runApp`.
 Future<void> configureDependencies() async {
-  // Each section maps an interface (what inner layers depend on) to a concrete
-  // implementation. Swap the fake data sources for their *Impl versions once
-  // the backend is live — nothing above the data layer changes.
   getIt
     // ---- Core ----
     ..registerLazySingleton<Dio>(buildDioClient)

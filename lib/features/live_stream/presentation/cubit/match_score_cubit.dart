@@ -8,11 +8,6 @@ import 'package:flutter_stream_hive_app/features/live_stream/domain/usecases/wat
 part 'match_score_state.dart';
 
 /// Drives the live score overlay on the detail screen.
-///
-/// The real-time analogue of `LiveStreamCubit`: instead of awaiting a future,
-/// it subscribes to a `StreamUseCase` and re-emits state on every frame. It
-/// owns the subscription and tears it down in [close] — leaking a WebSocket
-/// subscription is the classic real-time bug.
 class MatchScoreCubit extends Cubit<MatchScoreState> {
   MatchScoreCubit({
     required WatchMatchScore watchMatchScore,

@@ -1,4 +1,5 @@
 import 'package:flutter_stream_hive_app/features/live_stream/live_stream.dart';
+import 'package:flutter_stream_hive_app/features/onboarding/onboarding.dart';
 import 'package:flutter_stream_hive_app/features/splash/splash.dart';
 import 'package:go_router/go_router.dart';
 
@@ -8,6 +9,7 @@ abstract final class AppRoute {
   const AppRoute._();
 
   static const String splash = 'splash';
+  static const String onboarding = 'onboarding';
   static const String home = 'home';
   static const String streamDetail = 'streamDetail';
 }
@@ -28,6 +30,11 @@ abstract final class AppRouter {
         path: '/splash',
         name: AppRoute.splash,
         builder: (context, state) => const SplashPage(),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        name: AppRoute.onboarding,
+        builder: (context, state) => const OnboardingPage(),
       ),
       GoRoute(
         path: '/',

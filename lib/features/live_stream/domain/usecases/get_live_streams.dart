@@ -17,10 +17,6 @@ class GetLiveStreamsParams extends Equatable {
 }
 
 /// Fetches the list of currently-live streams.
-///
-/// A thin pass-through today, but this is the natural home for app-specific
-/// rules later: hiding geo-blocked streams, sorting by viewer count, merging
-/// in followed teams, etc. — none of which belong in the repository or the UI.
 class GetLiveStreams extends UseCase<List<LiveStream>, GetLiveStreamsParams> {
   const GetLiveStreams(this._repository);
 

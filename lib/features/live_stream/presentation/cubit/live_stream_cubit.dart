@@ -6,10 +6,6 @@ import 'package:flutter_stream_hive_app/features/live_stream/domain/usecases/get
 part 'live_stream_state.dart';
 
 /// Drives the live-stream list screen.
-///
-/// Note what it depends on: a single **use case**, never a repository or Dio.
-/// The presentation layer only knows the domain. It calls the use case, folds
-/// the `Either`, and maps the result to UI state.
 class LiveStreamCubit extends Cubit<LiveStreamState> {
   LiveStreamCubit({required GetLiveStreams getLiveStreams})
     : _getLiveStreams = getLiveStreams,
