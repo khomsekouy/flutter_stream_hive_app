@@ -39,6 +39,9 @@ abstract final class AppColors {
   static const Color error = Color(0xFFE53935);
   static const Color info = Color(0xFF3B82F6);
 
+  /// Gold — used to highlight a live scoreline.
+  static const Color gold = Color(0xFFFFC83D);
+
   // ---- Common ----
   static const Color white = Color(0xFFFFFFFF);
   static const Color black = Color(0xFF000000);

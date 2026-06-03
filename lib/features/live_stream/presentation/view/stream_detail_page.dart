@@ -1,12 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_stream_hive_app/core/di/injection.dart';
 import 'package:flutter_stream_hive_app/core/notifications/notification_manager.dart';
+import 'package:flutter_stream_hive_app/core/theme/theme.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/domain/entities/live_stream.dart';
-import 'package:flutter_stream_hive_app/features/live_stream/presentation/cubit/match_score_cubit.dart';
+import 'package:flutter_stream_hive_app/features/live_stream/presentation/content/home_content.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/presentation/cubit/stream_detail_cubit.dart';
+import 'package:flutter_stream_hive_app/features/live_stream/presentation/widgets/home_sections.dart';
 
 /// Detail / watch screen for a single stream, reached via `/stream/:id`.
 class StreamDetailPage extends StatelessWidget {
@@ -75,38 +78,189 @@ class StreamDetailView extends StatelessWidget {
   }
 }
 
-class _StreamDetailContent extends StatelessWidget {
+class _StreamDetailContent extends StatefulWidget {
   const _StreamDetailContent({required this.stream});
 
   final LiveStream stream;
 
   @override
+  State<_StreamDetailContent> createState() => _StreamDetailContentState();
+}
+
+class _StreamDetailContentState extends State<_StreamDetailContent> {
+  bool _expanded = true;
+
+  // Seeded from the sample list; new comments are prepended as the user posts.
+  final List<LiveComment> _comments = List.of(kLiveComments);
+  final TextEditingController _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _toggle() => setState(() => _expanded = !_expanded);
+
+  void _send() {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+    setState(() {
+      _comments.insert(
+        0,
+        LiveComment(author: 'You', text: text, timeAgo: 'now'),
+      );
+      _controller.clear();
+    });
+    FocusScope.of(context).unfocus();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return ListView(
+    final stream = widget.stream;
+    final isLandscape =
+        MediaQuery.orientationOf(context) == Orientation.landscape;
+    return Column(
+      children: [
+        // Portrait keeps the top fixed and scrolls only the comments. Landscape
+        // is too short for a fixed layout, so the whole page scrolls instead.
+        Expanded(
+          child: isLandscape ? _landscapeBody(stream) : _portraitBody(stream),
+        ),
+        // Composer pinned to the bottom, like a chat input bar. It stays above
+        // the keyboard because the Scaffold resizes around the inset.
+        _CommentComposerBar(controller: _controller, onSend: _send),
+      ],
+    );
+  }
+
+  /// Match info + the tappable comments header, shared by both layouts.
+  Widget _infoSection(BuildContext context, LiveStream stream) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (stream.hasScore && stream.hasMatch)
+            _ScoreHeader(stream: stream)
+          else
+            Text(
+              stream.title,
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+            ),
+          const SizedBox(height: 12),
+          _StatsRow(
+            viewerCount: stream.viewerCount,
+            commentCount: stream.commentCount,
+          ),
+          const SizedBox(height: 24),
+          _CommentsHeader(expanded: _expanded, onToggle: _toggle),
+        ],
+      ),
+    );
+  }
+
+  /// Portrait: player + info fixed at the top, only the comments list scrolls.
+  Widget _portraitBody(LiveStream stream) {
+    return Column(
       children: [
         const _PlayerPlaceholder(),
+        _infoSection(context, stream),
+        if (_expanded)
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              itemCount: _comments.length,
+              itemBuilder: (context, i) => _CommentTile(comment: _comments[i]),
+            ),
+          )
+        else
+          const Spacer(),
+      ],
+    );
+  }
+
+  /// Landscape: everything scrolls together so nothing overflows.
+  Widget _landscapeBody(LiveStream stream) {
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 8),
+      children: [
+        const _PlayerPlaceholder(),
+        _infoSection(context, stream),
+        if (_expanded)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Column(
+              children: [
+                for (final comment in _comments) _CommentTile(comment: comment),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Big match header: each team's crest + name with the gold scoreline between.
+class _ScoreHeader extends StatelessWidget {
+  const _ScoreHeader({required this.stream});
+
+  final LiveStream stream;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(child: _TeamBadge(team: stream.homeTeam)),
         Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                stream.title,
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                stream.competition ?? stream.sport,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 24),
-              if (stream.hasMatch)
-                BlocProvider(
-                  create: (_) =>
-                      getIt<MatchScoreCubit>(param1: stream.id)..start(),
-                  child: _LiveScore(stream: stream),
-                ),
-            ],
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Text(
+            '${stream.homeScore} : ${stream.awayScore}',
+            style: const TextStyle(
+              color: AppColors.gold,
+              fontSize: 36,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        Expanded(child: _TeamBadge(team: stream.awayTeam)),
+      ],
+    );
+  }
+}
+
+/// A large circular crest with the team name centered beneath it.
+class _TeamBadge extends StatelessWidget {
+  const _TeamBadge({required this.team});
+
+  final String? team;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          width: 64,
+          height: 64,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            color: AppColors.surfaceHigh,
+            shape: BoxShape.circle,
+          ),
+          child: TeamCrest(team: team, size: 40),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          team ?? 'TBD',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ],
@@ -114,33 +268,153 @@ class _StreamDetailContent extends StatelessWidget {
   }
 }
 
-class _PlayerPlaceholder extends StatelessWidget {
-  const _PlayerPlaceholder();
+/// Tappable "Live comments" header that collapses/expands the list.
+class _CommentsHeader extends StatelessWidget {
+  const _CommentsHeader({required this.expanded, required this.onToggle});
+
+  final bool expanded;
+  final VoidCallback onToggle;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () =>
-          NotificationManager.info(context, 'Video player — coming soon'),
-      child: const AspectRatio(
-        aspectRatio: 16 / 9,
-        child: ColoredBox(
-          color: Colors.black,
-          child: Center(
+    return InkWell(
+      onTap: onToggle,
+      child: Row(
+        children: [
+          const Icon(
+            Icons.mode_comment_outlined,
+            size: 20,
+            color: AppColors.primaryLight,
+          ),
+          const SizedBox(width: 8),
+          Text('Live comments', style: Theme.of(context).textTheme.titleMedium),
+          const Spacer(),
+          Icon(
+            expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+            color: AppColors.textSecondary,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A single comment row: initials avatar, author + time, then the message.
+class _CommentTile extends StatelessWidget {
+  const _CommentTile({required this.comment});
+
+  final LiveComment comment;
+
+  /// Up to two uppercase initials derived from the author's name.
+  String get _initials {
+    final parts = comment.author.split(' ').where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return '?';
+    final letters = parts.take(2).map((p) => p[0]).join();
+    return letters.toUpperCase();
+  }
+
+  static const List<Color> _avatarColors = [
+    AppColors.primary,
+    AppColors.secondary,
+    AppColors.info,
+    AppColors.warning,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color =
+        _avatarColors[comment.author.hashCode.abs() % _avatarColors.length];
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: color.withValues(alpha: 0.25),
+            child: Text(
+              _initials,
+              style: TextStyle(
+                color: color,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons.play_circle_outline,
-                  size: 64,
-                  color: Colors.white70,
+                Row(
+                  children: [
+                    Text(
+                      comment.author,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      comment.timeAgo,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(height: 8),
-                Text(
-                  'Player goes here (HLS via media_kit / video_player)',
-                  style: TextStyle(color: Colors.white54, fontSize: 12),
-                ),
+                const SizedBox(height: 2),
+                Text(comment.text, style: theme.textTheme.bodyMedium),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Editable comment input pinned to the bottom of the screen as a chat-style
+/// bar. Submitting (send button or keyboard) posts the comment via [onSend].
+class _CommentComposerBar extends StatelessWidget {
+  const _CommentComposerBar({required this.controller, required this.onSend});
+
+  final TextEditingController controller;
+  final VoidCallback onSend;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(top: BorderSide(color: AppColors.outline)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: TextField(
+            controller: controller,
+            textInputAction: TextInputAction.send,
+            onSubmitted: (_) => onSend(),
+            style: const TextStyle(color: AppColors.textPrimary),
+            decoration: InputDecoration(
+              hintText: 'Write a comment...',
+              filled: true,
+              fillColor: AppColors.surfaceHigh,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(24),
+                borderSide: BorderSide.none,
+              ),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.send, color: AppColors.primaryLight),
+                onPressed: onSend,
+              ),
             ),
           ),
         ),
@@ -149,80 +423,226 @@ class _PlayerPlaceholder extends StatelessWidget {
   }
 }
 
-/// Live score widget — rebuilds on every frame pushed by [MatchScoreCubit].
-class _LiveScore extends StatelessWidget {
-  const _LiveScore({required this.stream});
+class _PlayerPlaceholder extends StatefulWidget {
+  const _PlayerPlaceholder();
 
-  final LiveStream stream;
+  @override
+  State<_PlayerPlaceholder> createState() => _PlayerPlaceholderState();
+}
+
+class _PlayerPlaceholderState extends State<_PlayerPlaceholder> {
+  bool _muted = false;
+
+  void _toggleMute() => setState(() => _muted = !_muted);
+
+  void _openFullscreen() {
+    unawaited(
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          fullscreenDialog: true,
+          builder: (_) => const _FullscreenPlayer(),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return BlocBuilder<MatchScoreCubit, MatchScoreState>(
-      builder: (context, state) {
-        final score = state.score;
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Live score', style: theme.textTheme.labelLarge),
-                    if (score != null)
-                      Text(
-                        "${score.minute}'",
-                        style: theme.textTheme.labelLarge,
+    return AspectRatio(
+      aspectRatio: 16 / 9,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: () => NotificationManager.info(
+                context,
+                'Video player — coming soon',
+              ),
+              child: const ColoredBox(
+                color: Colors.black,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.play_circle_outline,
+                        size: 64,
+                        color: Colors.white70,
                       ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _TeamScore(
-                      team: stream.homeTeam ?? 'Home',
-                      score: score?.homeScore,
-                    ),
-                    Text(':', style: theme.textTheme.headlineMedium),
-                    _TeamScore(
-                      team: stream.awayTeam ?? 'Away',
-                      score: score?.awayScore,
-                    ),
-                  ],
-                ),
-                if (state.status == MatchScoreStatus.watching && score == null)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 12),
-                    child: Text('Connecting to live score…'),
+                      SizedBox(height: 8),
+                      Text(
+                        'Player goes here (HLS via media_kit / video_player)',
+                        style: TextStyle(color: Colors.white54, fontSize: 12),
+                      ),
+                    ],
                   ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            right: 4,
+            bottom: 4,
+            child: Row(
+              children: [
+                IconButton(
+                  icon: Icon(
+                    _muted ? Icons.volume_off : Icons.volume_up,
+                    color: Colors.white,
+                  ),
+                  tooltip: _muted ? 'Unmute' : 'Mute',
+                  onPressed: _toggleMute,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.fullscreen, color: Colors.white),
+                  tooltip: 'Fullscreen',
+                  onPressed: _openFullscreen,
+                ),
               ],
             ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }
 
-class _TeamScore extends StatelessWidget {
-  const _TeamScore({required this.team, required this.score});
+/// Landscape, immersive fullscreen player. Locks orientation while open and
+/// restores it on exit.
+class _FullscreenPlayer extends StatefulWidget {
+  const _FullscreenPlayer();
 
-  final String team;
-  final int? score;
+  @override
+  State<_FullscreenPlayer> createState() => _FullscreenPlayerState();
+}
+
+class _FullscreenPlayerState extends State<_FullscreenPlayer> {
+  bool _muted = false;
+
+  void _toggleMute() => setState(() => _muted = !_muted);
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky),
+    );
+    unawaited(
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]),
+    );
+  }
+
+  @override
+  void dispose() {
+    unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
+    unawaited(SystemChrome.setPreferredOrientations(DeviceOrientation.values));
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          const Positioned.fill(
+            child: Center(
+              child: Icon(
+                Icons.play_circle_outline,
+                size: 80,
+                color: Colors.white70,
+              ),
+            ),
+          ),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: SafeArea(
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      _muted ? Icons.volume_off : Icons.volume_up,
+                      color: Colors.white,
+                    ),
+                    tooltip: _muted ? 'Unmute' : 'Mute',
+                    onPressed: _toggleMute,
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.fullscreen_exit,
+                      color: Colors.white,
+                    ),
+                    tooltip: 'Exit fullscreen',
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Viewers + comments summary, e.g. "12.4K viewers · 328 comments".
+class _StatsRow extends StatelessWidget {
+  const _StatsRow({required this.viewerCount, required this.commentCount});
+
+  final int viewerCount;
+  final int commentCount;
+
+  /// Compact count, e.g. `12.4K` / `1.2M`.
+  static String _formatCount(int value) {
+    if (value >= 1000000) {
+      return '${(value / 1000000).toStringAsFixed(1)}M';
+    }
+    if (value >= 1000) {
+      return '${(value / 1000).toStringAsFixed(1)}K';
+    }
+    return '$value';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
       children: [
-        Text(
-          score?.toString() ?? '–',
-          style: theme.textTheme.displaySmall,
+        _StatItem(
+          icon: Icons.visibility_outlined,
+          text: '${_formatCount(viewerCount)} viewers',
         ),
-        const SizedBox(height: 4),
-        Text(team, style: theme.textTheme.bodyMedium),
+        const SizedBox(width: 20),
+        _StatItem(
+          icon: Icons.mode_comment_outlined,
+          text: '${_formatCount(commentCount)} comments',
+        ),
+      ],
+    );
+  }
+}
+
+class _StatItem extends StatelessWidget {
+  const _StatItem({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 18, color: color),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: color),
+        ),
       ],
     );
   }

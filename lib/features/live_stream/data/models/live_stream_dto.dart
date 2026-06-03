@@ -15,6 +15,7 @@ class LiveStreamDto {
     required this.sport,
     this.thumbnailUrl,
     this.viewerCount = 0,
+    this.commentCount = 0,
     this.competition,
     this.homeTeam,
     this.awayTeam,
@@ -34,6 +35,7 @@ class LiveStreamDto {
       sport: json['sport'] as String? ?? 'unknown',
       thumbnailUrl: json['thumbnail_url'] as String?,
       viewerCount: (json['viewer_count'] as num?)?.toInt() ?? 0,
+      commentCount: (json['comment_count'] as num?)?.toInt() ?? 0,
       competition: json['competition'] as String?,
       homeTeam: json['home_team'] as String?,
       awayTeam: json['away_team'] as String?,
@@ -52,6 +54,7 @@ class LiveStreamDto {
   final String sport;
   final String? thumbnailUrl;
   final int viewerCount;
+  final int commentCount;
   final String? competition;
   final String? homeTeam;
   final String? awayTeam;
@@ -72,6 +75,7 @@ class LiveStreamDto {
       sport: sport,
       thumbnailUrl: thumbnail == null ? null : Uri.tryParse(thumbnail),
       viewerCount: viewerCount,
+      commentCount: commentCount,
       competition: competition,
       homeTeam: homeTeam,
       awayTeam: awayTeam,
