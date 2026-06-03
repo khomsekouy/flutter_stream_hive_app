@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_stream_hive_app/core/di/injection.dart';
+import 'package:flutter_stream_hive_app/core/notifications/notification_manager.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/domain/entities/live_stream.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/presentation/cubit/match_score_cubit.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/presentation/cubit/stream_detail_cubit.dart';
@@ -43,7 +44,21 @@ class StreamDetailView extends StatelessWidget {
       builder: (context, state) {
         final stream = state.stream;
         return Scaffold(
-          appBar: AppBar(title: Text(stream?.title ?? 'Stream')),
+          appBar: AppBar(
+            title: Text(stream?.title ?? 'Stream'),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.share_outlined),
+                onPressed: () =>
+                    NotificationManager.info(context, 'Share — coming soon'),
+              ),
+              IconButton(
+                icon: const Icon(Icons.bookmark_border),
+                onPressed: () =>
+                    NotificationManager.success(context, 'Saved — coming soon'),
+              ),
+            ],
+          ),
           body: switch (state.status) {
             StreamDetailStatus.initial ||
             StreamDetailStatus.loading => const Center(
@@ -104,21 +119,29 @@ class _PlayerPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const AspectRatio(
-      aspectRatio: 16 / 9,
-      child: ColoredBox(
-        color: Colors.black,
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.play_circle_outline, size: 64, color: Colors.white70),
-              SizedBox(height: 8),
-              Text(
-                'Player goes here (HLS via media_kit / video_player)',
-                style: TextStyle(color: Colors.white54, fontSize: 12),
-              ),
-            ],
+    return GestureDetector(
+      onTap: () =>
+          NotificationManager.info(context, 'Video player — coming soon'),
+      child: const AspectRatio(
+        aspectRatio: 16 / 9,
+        child: ColoredBox(
+          color: Colors.black,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.play_circle_outline,
+                  size: 64,
+                  color: Colors.white70,
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Player goes here (HLS via media_kit / video_player)',
+                  style: TextStyle(color: Colors.white54, fontSize: 12),
+                ),
+              ],
+            ),
           ),
         ),
       ),

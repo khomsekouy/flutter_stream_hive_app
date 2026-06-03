@@ -199,6 +199,35 @@ class FakeLiveStreamRemoteDataSource implements LiveStreamRemoteDataSource {
       startTime: '2026-06-04T20:45:00Z',
       venue: 'San Siro',
     ),
+    // ---- Finished (drives the "Finished" group on the Matches tab) ----
+    const LiveStreamDto(
+      id: 'epl-mci-liv',
+      title: 'Manchester City vs Liverpool',
+      status: 'ended',
+      hlsUrl: 'https://stream.example.com/epl-mci-liv/master.m3u8',
+      sport: 'football',
+      competition: 'Premier League',
+      homeTeam: 'Manchester City',
+      awayTeam: 'Liverpool',
+      startTime: '2026-06-01T16:30:00Z',
+      venue: 'Etihad Stadium',
+      homeScore: 4,
+      awayScore: 1,
+    ),
+    const LiveStreamDto(
+      id: 'ucl-rma-juv',
+      title: 'Real Madrid vs Juventus',
+      status: 'ended',
+      hlsUrl: 'https://stream.example.com/ucl-rma-juv/master.m3u8',
+      sport: 'football',
+      competition: 'Champions League',
+      homeTeam: 'Real Madrid',
+      awayTeam: 'Juventus',
+      startTime: '2026-06-01T20:00:00Z',
+      venue: 'Santiago Bernabéu',
+      homeScore: 2,
+      awayScore: 0,
+    ),
   ];
 
   @override

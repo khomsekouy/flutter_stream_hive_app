@@ -1,5 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_stream_hive_app/core/network/dio_client.dart';
+import 'package:flutter_stream_hive_app/features/highlight_list/data/datasources/highlight_list_remote_data_source.dart';
+import 'package:flutter_stream_hive_app/features/highlight_list/data/repositories/highlight_list_repository_impl.dart';
+import 'package:flutter_stream_hive_app/features/highlight_list/domain/repositories/highlight_list_repository.dart';
+import 'package:flutter_stream_hive_app/features/highlight_list/domain/usecases/get_highlight_list_list.dart';
+import 'package:flutter_stream_hive_app/features/highlight_list/presentation/cubit/highlight_list_cubit.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/data/datasources/live_stream_remote_data_source.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/data/datasources/live_stream_ws_data_source.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/data/repositories/live_stream_repository_impl.dart';
@@ -27,16 +32,26 @@ Future<void> configureDependencies() async {
     ..registerLazySingleton<LiveStreamWsDataSource>(
       FakeLiveStreamWsDataSource.new,
     )
+    ..registerLazySingleton<HighlightListRemoteDataSource>(
+      FakeHighlightListRemoteDataSource.new,
+    )
     // ---- Repositories ----
     ..registerLazySingleton<LiveStreamRepository>(
       () => LiveStreamRepositoryImpl(remote: getIt(), ws: getIt()),
+    )
+    ..registerLazySingleton<HighlightListRepository>(
+      () => HighlightListRepositoryImpl(remote: getIt()),
     )
     // ---- Use cases ----
     ..registerFactory(() => GetLiveStreams(getIt()))
     ..registerFactory(() => GetStreamById(getIt()))
     ..registerFactory(() => WatchMatchScore(getIt()))
+    ..registerFactory(() => GetHighlightListList(getIt()))
     // ---- Presentation (cubits) ----
     ..registerFactory(() => LiveStreamCubit(getLiveStreams: getIt()))
+    ..registerFactory(
+      () => HighlightListCubit(getHighlightListList: getIt()),
+    )
     ..registerFactoryParam<MatchScoreCubit, String, void>(
       (matchId, _) =>
           MatchScoreCubit(watchMatchScore: getIt(), matchId: matchId),
