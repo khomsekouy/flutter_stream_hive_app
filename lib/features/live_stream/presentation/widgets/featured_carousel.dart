@@ -105,6 +105,9 @@ class _FeaturedSlide extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap == null ? null : () => onTap!(match),
+      // The banner artwork already carries the match title and competition,
+      // so we don't overlay our own text — only the LIVE pill (the dots are
+      // drawn by the carousel above this slide).
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -114,72 +117,18 @@ class _FeaturedSlide extends StatelessWidget {
               color: AppColors.surfaceHigh,
             ),
           ),
-          // Side + bottom scrim for legible overlay text.
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.black54, Colors.transparent, Colors.black87],
-                stops: [0, 0.45, 1],
+          if (match.isLive)
+            const Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: EdgeInsets.only(top: 18),
+                child: _LivePill(),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 30),
-            child: Column(
-              children: [
-                if (match.isLive) const _LivePill(),
-                const Spacer(),
-                Text(
-                  match.homeTeam.toUpperCase(),
-                  textAlign: TextAlign.center,
-                  style: _titleStyle,
-                ),
-                Text(
-                  'VS',
-                  style: _titleStyle.copyWith(color: AppColors.live),
-                ),
-                Text(
-                  match.awayTeam.toUpperCase(),
-                  textAlign: TextAlign.center,
-                  style: _titleStyle,
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const _HairLine(),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: Text(
-                        match.competition,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    const _HairLine(),
-                  ],
-                ),
-                const SizedBox(height: 22),
-              ],
-            ),
-          ),
         ],
       ),
     );
   }
-
-  static const TextStyle _titleStyle = TextStyle(
-    color: AppColors.white,
-    fontSize: 26,
-    fontWeight: FontWeight.w800,
-    height: 1.05,
-    letterSpacing: 0.5,
-  );
 }
 
 class _LivePill extends StatelessWidget {
@@ -210,15 +159,6 @@ class _LivePill extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-class _HairLine extends StatelessWidget {
-  const _HairLine();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(width: 24, height: 1, color: AppColors.live);
   }
 }
 

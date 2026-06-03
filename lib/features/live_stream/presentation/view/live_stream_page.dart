@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_stream_hive_app/core/di/injection.dart';
+import 'package:flutter_stream_hive_app/core/notifications/notification_manager.dart';
 import 'package:flutter_stream_hive_app/core/router/app_router.dart';
 import 'package:flutter_stream_hive_app/core/theme/theme.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/domain/entities/live_stream.dart';
@@ -42,15 +43,7 @@ class LiveStreamView extends StatefulWidget {
 }
 
 class _LiveStreamViewState extends State<LiveStreamView> {
-  static const List<HomeNavItem> _navItems = [
-    HomeNavItem(icon: Icons.home_filled, label: 'Home'),
-    HomeNavItem(icon: Icons.calendar_today, label: 'Matches'),
-    HomeNavItem(icon: Icons.play_circle_outline, label: 'Highlights'),
-    HomeNavItem(icon: Icons.person_outline, label: 'Profile'),
-  ];
-
   int _league = 0;
-  int _navIndex = 0;
 
   bool _matchesLeague(LiveStream s) {
     final competition = kLeagueFilters[_league].competition;
@@ -63,19 +56,13 @@ class _LiveStreamViewState extends State<LiveStreamView> {
     extra: stream,
   );
 
-  void _comingSoon(String label) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text('$label — coming soon'),
-          duration: const Duration(seconds: 1),
-        ),
-      );
-  }
+  void _comingSoon(String label) =>
+      NotificationManager.info(context, '$label — coming soon');
 
   @override
   Widget build(BuildContext context) {
+    // Bottom nav + Live FAB are owned by the shell (ScaffoldWithNavBar); this
+    // screen only provides its app bar and scrollable body.
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -94,21 +81,6 @@ class _LiveStreamViewState extends State<LiveStreamView> {
           ),
           const SizedBox(width: 4),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _comingSoon('Live'),
-        backgroundColor: AppColors.live,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.sensors, color: AppColors.white, size: 28),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: HomeBottomNav(
-        items: _navItems,
-        currentIndex: _navIndex,
-        onSelected: (i) {
-          setState(() => _navIndex = i);
-          if (i != 0) _comingSoon(_navItems[i].label);
-        },
       ),
       body: BlocBuilder<LiveStreamCubit, LiveStreamState>(
         builder: (context, state) {
@@ -133,6 +105,8 @@ class _LiveStreamViewState extends State<LiveStreamView> {
                   onLeagueSelected: (i) => setState(() => _league = i),
                   onOpenDetail: _openDetail,
                   onViewAll: _comingSoon,
+                  onOpenHighlights: () =>
+                      context.goNamed(AppRoute.highlights),
                 ),
               );
           }
@@ -151,6 +125,7 @@ class _Dashboard extends StatelessWidget {
     required this.onLeagueSelected,
     required this.onOpenDetail,
     required this.onViewAll,
+    required this.onOpenHighlights,
   });
 
   final List<LiveStream> streams;
@@ -159,6 +134,7 @@ class _Dashboard extends StatelessWidget {
   final ValueChanged<int> onLeagueSelected;
   final ValueChanged<LiveStream> onOpenDetail;
   final ValueChanged<String> onViewAll;
+  final VoidCallback onOpenHighlights;
 
   static String _formatKickOff(DateTime? start) {
     if (start == null) return 'Time TBD';
@@ -229,7 +205,7 @@ class _Dashboard extends StatelessWidget {
         // ---- Highlights ----
         SectionHeader(
           title: 'Highlights',
-          onViewAll: () => onViewAll('Highlights'),
+          onViewAll: onOpenHighlights,
         ),
         SizedBox(
           height: 200,
@@ -240,7 +216,7 @@ class _Dashboard extends StatelessWidget {
             separatorBuilder: (_, _) => const SizedBox(width: 12),
             itemBuilder: (context, i) => HighlightCard(
               highlight: kHighlights[i],
-              onTap: () => onViewAll('Highlight'),
+              onTap: onOpenHighlights,
             ),
           ),
         ),

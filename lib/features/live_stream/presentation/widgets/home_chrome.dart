@@ -96,6 +96,15 @@ class HomeNavItem {
   final String label;
 }
 
+/// The app's primary bottom-nav destinations, shared across screens so the bar
+/// is identical everywhere. Index 2 (Highlights) is the route currently wired.
+const List<HomeNavItem> kMainNavItems = [
+  HomeNavItem(icon: Icons.home_filled, label: 'Home'),
+  HomeNavItem(icon: Icons.calendar_today, label: 'Matches'),
+  HomeNavItem(icon: Icons.smart_display, label: 'Highlights'),
+  HomeNavItem(icon: Icons.person_outline, label: 'Profile'),
+];
+
 /// Items are split around the centre FAB: indices 0..1 sit left, 2..3 right.
 /// The FAB itself is the Scaffold's [FloatingActionButton] (centre-docked).
 class HomeBottomNav extends StatelessWidget {
