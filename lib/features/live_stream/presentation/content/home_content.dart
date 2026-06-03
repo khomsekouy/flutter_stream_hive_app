@@ -52,6 +52,21 @@ class NewsArticle {
   final String thumbnailUrl;
 }
 
+/// A single live chat comment on a stream.
+class LiveComment {
+  const LiveComment({
+    required this.author,
+    required this.text,
+    required this.timeAgo,
+  });
+
+  final String author;
+  final String text;
+
+  /// Pre-formatted relative time, e.g. `1m`.
+  final String timeAgo;
+}
+
 /// One chip in the "Top Leagues" filter row.
 class LeagueFilter {
   const LeagueFilter({required this.label, this.competition});
@@ -120,6 +135,26 @@ const List<Highlight> kHighlights = [
     league: 'Serie A',
     duration: '06:11',
     thumbnailUrl: 'https://picsum.photos/seed/hl-int-juv/480/270',
+  ),
+];
+
+/// Sample live chat comments for the stream detail screen.
+const List<LiveComment> kLiveComments = [
+  LiveComment(author: 'Alex V.', text: 'What a goal! 🔥', timeAgo: '1m'),
+  LiveComment(
+    author: 'Jamie M.',
+    text: 'Arsenal are playing amazing today! 👏',
+    timeAgo: '1m',
+  ),
+  LiveComment(
+    author: 'Priya S.',
+    text: 'That defending was unreal 😮',
+    timeAgo: '2m',
+  ),
+  LiveComment(
+    author: 'Marco B.',
+    text: 'Best match of the season so far!',
+    timeAgo: '3m',
   ),
 ];
 

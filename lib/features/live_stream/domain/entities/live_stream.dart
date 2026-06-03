@@ -4,11 +4,6 @@ import 'package:equatable/equatable.dart';
 enum StreamStatus { upcoming, live, ended }
 
 /// A broadcastable sporting event — the central business object of the feature.
-///
-/// This is a **pure domain entity**: no JSON, no Flutter, no networking. It
-/// holds data plus the business rules that operate on that data (`isWatchable`,
-/// `hasMatch`). The data layer maps DTOs into this; the presentation layer
-/// renders it.
 class LiveStream extends Equatable {
   const LiveStream({
     required this.id,
@@ -18,6 +13,7 @@ class LiveStream extends Equatable {
     required this.sport,
     this.thumbnailUrl,
     this.viewerCount = 0,
+    this.commentCount = 0,
     this.competition,
     this.homeTeam,
     this.awayTeam,
@@ -40,6 +36,9 @@ class LiveStream extends Equatable {
   final Uri? thumbnailUrl;
   final int viewerCount;
 
+  /// Number of live chat comments on the broadcast.
+  final int commentCount;
+
   /// e.g. `Premier League`. Null for non-match streams.
   final String? competition;
   final String? homeTeam;
@@ -50,9 +49,6 @@ class LiveStream extends Equatable {
   /// streams.
   final String? venue;
 
-  /// Current scoreline. Null until/unless the match has started; for list
-  /// views the API denormalises the live score so we don't open a socket per
-  /// row. The authoritative, ticking score still comes from `MatchScore`.
   final int? homeScore;
   final int? awayScore;
 
@@ -80,6 +76,7 @@ class LiveStream extends Equatable {
     sport,
     thumbnailUrl,
     viewerCount,
+    commentCount,
     competition,
     homeTeam,
     awayTeam,

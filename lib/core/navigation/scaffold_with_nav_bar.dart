@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_stream_hive_app/core/notifications/notification_manager.dart';
+import 'package:flutter_stream_hive_app/core/router/app_router.dart';
 import 'package:flutter_stream_hive_app/core/theme/theme.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/presentation/widgets/home_chrome.dart';
 import 'package:go_router/go_router.dart';
@@ -30,8 +30,7 @@ class ScaffoldWithNavBar extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: navigationShell,
       floatingActionButton: FloatingActionButton(
-        onPressed: () =>
-            NotificationManager.info(context, 'Live — coming soon'),
+        onPressed: () => context.pushNamed(AppRoute.live),
         backgroundColor: AppColors.live,
         shape: const CircleBorder(),
         child: const Icon(Icons.sensors, color: AppColors.white, size: 28),

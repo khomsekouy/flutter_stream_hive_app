@@ -98,29 +98,204 @@ class _Panel extends StatelessWidget {
   }
 }
 
-/// A live match row: crest + name on each side, the big score and match clock
-/// in the middle, and a LIVE badge on the trailing edge.
+/// A live match card: a header (LIVE badge + label + match clock), big circular
+/// crests with the score between them, and a viewers / comments footer.
 class LiveMatchCard extends StatelessWidget {
   const LiveMatchCard({required this.match, this.onTap, super.key});
 
   final LiveStream match;
   final VoidCallback? onTap;
 
+  /// Compact count, e.g. `12.4K` / `1.2M`.
+  static String _formatCount(int value) {
+    if (value >= 1000000) {
+      return '${(value / 1000000).toStringAsFixed(1)}M';
+    }
+    if (value >= 1000) {
+      return '${(value / 1000).toStringAsFixed(1)}K';
+    }
+    return '$value';
+  }
+
   @override
   Widget build(BuildContext context) {
     return _Panel(
       onTap: onTap,
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(child: _TeamSide(team: match.homeTeam)),
-          _Score(match: match),
-          Expanded(child: _TeamSide(team: match.awayTeam)),
-          const SizedBox(width: 10),
-          const _Divider(),
-          const SizedBox(width: 10),
-          const _LiveBadge(),
+          // ---- Header: LIVE badge + label, match clock trailing. ----
+          Row(
+            children: [
+              const _LiveBadge(),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  match.competition ?? 'Live score',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              if (match.minute != null)
+                Text(
+                  "${match.minute}'",
+                  style: const TextStyle(
+                    color: AppColors.live,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 18),
+
+          // ---- Crests + score ----
+          Row(
+            children: [
+              Expanded(child: _TeamColumn(team: match.homeTeam)),
+              _ScoreLine(match: match),
+              Expanded(child: _TeamColumn(team: match.awayTeam)),
+            ],
+          ),
+          const SizedBox(height: 18),
+
+          const Divider(height: 1, color: AppColors.outline),
+          const SizedBox(height: 12),
+
+          // ---- Footer: viewers + comments ----
+          Row(
+            children: [
+              _StatItem(
+                icon: Icons.visibility_outlined,
+                text: '${_formatCount(match.viewerCount)} viewers',
+              ),
+              const Spacer(),
+              _StatItem(
+                icon: Icons.mode_comment_outlined,
+                text: '${_formatCount(match.commentCount)} comments',
+              ),
+            ],
+          ),
         ],
       ),
+    );
+  }
+}
+
+/// A large circular crest with the team name centered beneath it.
+class _TeamColumn extends StatelessWidget {
+  const _TeamColumn({required this.team});
+
+  final String? team;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          width: 64,
+          height: 64,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            color: AppColors.surfaceHigh,
+            shape: BoxShape.circle,
+          ),
+          child: TeamCrest(team: team, size: 40),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          team ?? 'TBD',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The centered scoreline, e.g. `3 : 2`, or `vs` before kick-off.
+class _ScoreLine extends StatelessWidget {
+  const _ScoreLine({required this.match});
+
+  final LiveStream match;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!match.hasScore) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 12),
+        child: Text(
+          'vs',
+          style: TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      );
+    }
+    const numberStyle = TextStyle(
+      color: AppColors.textPrimary,
+      fontSize: 34,
+      fontWeight: FontWeight.w800,
+    );
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('${match.homeScore}', style: numberStyle),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              ':',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 30,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Text('${match.awayScore}', style: numberStyle),
+        ],
+      ),
+    );
+  }
+}
+
+/// An icon + label pair used in the live card footer (viewers / comments).
+class _StatItem extends StatelessWidget {
+  const _StatItem({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: AppColors.textSecondary),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 13,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -154,50 +329,6 @@ class _TeamSide extends StatelessWidget {
   }
 }
 
-class _Score extends StatelessWidget {
-  const _Score({required this.match});
-
-  final LiveStream match;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            match.hasScore ? '${match.homeScore} - ${match.awayScore}' : 'vs',
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          if (match.minute != null)
-            Text(
-              "${match.minute}'",
-              style: const TextStyle(
-                color: AppColors.live,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Divider extends StatelessWidget {
-  const _Divider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(width: 1, height: 34, color: AppColors.outline);
-  }
-}
-
 class _LiveBadge extends StatelessWidget {
   const _LiveBadge();
 
@@ -209,14 +340,21 @@ class _LiveBadge extends StatelessWidget {
         color: AppColors.live,
         borderRadius: BorderRadius.circular(5),
       ),
-      child: const Text(
-        'LIVE',
-        style: TextStyle(
-          color: AppColors.white,
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.5,
-        ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.circle, size: 7, color: AppColors.white),
+          SizedBox(width: 5),
+          Text(
+            'LIVE',
+            style: TextStyle(
+              color: AppColors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
       ),
     );
   }

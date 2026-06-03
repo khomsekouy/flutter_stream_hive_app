@@ -14,6 +14,7 @@ abstract final class AppRoute {
   static const String splash = 'splash';
   static const String onboarding = 'onboarding';
   static const String home = 'home';
+  static const String live = 'live';
   static const String matches = 'matches';
   static const String streamDetail = 'streamDetail';
   static const String highlights = 'highlights';
@@ -81,6 +82,14 @@ abstract final class AppRouter {
             ],
           ),
         ],
+      ),
+      // Full-screen Live list: opened from the central Live action in the
+      // bottom nav. Pushed on the root navigator so it covers the shell.
+      GoRoute(
+        path: '/live',
+        name: AppRoute.live,
+        parentNavigatorKey: _rootKey,
+        builder: (context, state) => const LiveNowPage(),
       ),
       // Full-screen detail: pushed on the root navigator so it covers the
       // shell (no bottom nav) and Back returns to the active tab.

@@ -105,6 +105,7 @@ class _LiveStreamViewState extends State<LiveStreamView> {
                   onLeagueSelected: (i) => setState(() => _league = i),
                   onOpenDetail: _openDetail,
                   onViewAll: _comingSoon,
+                  onOpenLive: () => context.pushNamed(AppRoute.live),
                   onOpenHighlights: () =>
                       context.goNamed(AppRoute.highlights),
                 ),
@@ -125,6 +126,7 @@ class _Dashboard extends StatelessWidget {
     required this.onLeagueSelected,
     required this.onOpenDetail,
     required this.onViewAll,
+    required this.onOpenLive,
     required this.onOpenHighlights,
   });
 
@@ -134,6 +136,7 @@ class _Dashboard extends StatelessWidget {
   final ValueChanged<int> onLeagueSelected;
   final ValueChanged<LiveStream> onOpenDetail;
   final ValueChanged<String> onViewAll;
+  final VoidCallback onOpenLive;
   final VoidCallback onOpenHighlights;
 
   static String _formatKickOff(DateTime? start) {
@@ -169,12 +172,12 @@ class _Dashboard extends StatelessWidget {
         // ---- Live Now ----
         SectionHeader(
           title: 'Live Now',
-          onViewAll: () => onViewAll('Live Now'),
+          onViewAll: onOpenLive,
         ),
         if (live.isEmpty)
           const _EmptyRow(text: 'No live matches in this league.')
         else
-          ...live.map(
+          ...live.take(4).map(
             (s) => LiveMatchCard(match: s, onTap: () => onOpenDetail(s)),
           ),
 
