@@ -19,6 +19,9 @@ abstract final class AppRoute {
   static const String streamDetail = 'streamDetail';
   static const String highlights = 'highlights';
   static const String profile = 'profile';
+  static const String saved = 'saved';
+  static const String clubs = 'clubs';
+  static const String clubDetail = 'clubDetail';
 }
 
 abstract final class AppRouter {
@@ -90,6 +93,27 @@ abstract final class AppRouter {
         name: AppRoute.live,
         parentNavigatorKey: _rootKey,
         builder: (context, state) => const LiveNowPage(),
+      ),
+      GoRoute(
+        path: '/saved',
+        name: AppRoute.saved,
+        parentNavigatorKey: _rootKey,
+        builder: (context, state) => const SavedPage(),
+      ),
+      GoRoute(
+        path: '/clubs',
+        name: AppRoute.clubs,
+        parentNavigatorKey: _rootKey,
+        builder: (context, state) => const ClubsPage(),
+      ),
+      GoRoute(
+        path: '/club/:name',
+        name: AppRoute.clubDetail,
+        parentNavigatorKey: _rootKey,
+        builder: (context, state) => ClubDetailPage(
+          clubName: state.pathParameters['name']!,
+          country: state.extra as String?,
+        ),
       ),
       // Full-screen detail: pushed on the root navigator so it covers the
       // shell (no bottom nav) and Back returns to the active tab.

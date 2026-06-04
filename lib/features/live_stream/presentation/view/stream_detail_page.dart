@@ -9,6 +9,7 @@ import 'package:flutter_stream_hive_app/core/theme/theme.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/domain/entities/live_stream.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/presentation/content/home_content.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/presentation/cubit/stream_detail_cubit.dart';
+import 'package:flutter_stream_hive_app/features/live_stream/presentation/saved/saved_streams_store.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/presentation/widgets/home_sections.dart';
 
 /// Detail / watch screen for a single stream, reached via `/stream/:id`.
@@ -55,11 +56,7 @@ class StreamDetailView extends StatelessWidget {
                 onPressed: () =>
                     NotificationManager.info(context, 'Share — coming soon'),
               ),
-              IconButton(
-                icon: const Icon(Icons.bookmark_border),
-                onPressed: () =>
-                    NotificationManager.success(context, 'Saved — coming soon'),
-              ),
+              _SaveButton(stream: stream),
             ],
           ),
           body: switch (state.status) {
@@ -72,6 +69,46 @@ class StreamDetailView extends StatelessWidget {
             ),
             StreamDetailStatus.success => _StreamDetailContent(stream: stream!),
           },
+        );
+      },
+    );
+  }
+}
+
+/// Bookmark toggle in the app bar. Adds/removes the stream from the shared
+/// [SavedStreamsStore] and reflects the saved state via the icon.
+class _SaveButton extends StatelessWidget {
+  const _SaveButton({required this.stream});
+
+  final LiveStream? stream;
+
+  void _toggle(BuildContext context, LiveStream stream) {
+    final nowSaved = getIt<SavedStreamsStore>().toggle(stream);
+    if (nowSaved) {
+      NotificationManager.success(context, 'Saved');
+    } else {
+      NotificationManager.info(context, 'Removed from saved');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final stream = this.stream;
+    if (stream == null) {
+      return const IconButton(
+        icon: Icon(Icons.bookmark_border),
+        onPressed: null,
+      );
+    }
+    final store = getIt<SavedStreamsStore>();
+    return ListenableBuilder(
+      listenable: store,
+      builder: (context, _) {
+        final saved = store.isSaved(stream.id);
+        return IconButton(
+          icon: Icon(saved ? Icons.bookmark : Icons.bookmark_border),
+          tooltip: saved ? 'Remove from saved' : 'Save',
+          onPressed: () => _toggle(context, stream),
         );
       },
     );
@@ -431,10 +468,6 @@ class _PlayerPlaceholder extends StatefulWidget {
 }
 
 class _PlayerPlaceholderState extends State<_PlayerPlaceholder> {
-  bool _muted = false;
-
-  void _toggleMute() => setState(() => _muted = !_muted);
-
   void _openFullscreen() {
     unawaited(
       Navigator.of(context).push(
@@ -450,59 +483,186 @@ class _PlayerPlaceholderState extends State<_PlayerPlaceholder> {
   Widget build(BuildContext context) {
     return AspectRatio(
       aspectRatio: 16 / 9,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: () => NotificationManager.info(
-                context,
-                'Video player — coming soon',
-              ),
-              child: const ColoredBox(
-                color: Colors.black,
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.play_circle_outline,
-                        size: 64,
-                        color: Colors.white70,
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Player goes here (HLS via media_kit / video_player)',
-                        style: TextStyle(color: Colors.white54, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            right: 4,
-            bottom: 4,
-            child: Row(
+      child: _PlayerControls(
+        background: const ColoredBox(
+          color: Colors.black,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                IconButton(
-                  icon: Icon(
-                    _muted ? Icons.volume_off : Icons.volume_up,
-                    color: Colors.white,
-                  ),
-                  tooltip: _muted ? 'Unmute' : 'Mute',
-                  onPressed: _toggleMute,
+                Icon(
+                  Icons.play_circle_outline,
+                  size: 64,
+                  color: Colors.white70,
                 ),
-                IconButton(
-                  icon: const Icon(Icons.fullscreen, color: Colors.white),
-                  tooltip: 'Fullscreen',
-                  onPressed: _openFullscreen,
+                SizedBox(height: 8),
+                Text(
+                  'Player goes here (HLS via media_kit / video_player)',
+                  style: TextStyle(color: Colors.white54, fontSize: 12),
                 ),
               ],
             ),
           ),
-        ],
+        ),
+        overlay: Positioned(
+          right: 4,
+          bottom: 4,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const _VolumeControl(),
+              IconButton(
+                icon: const Icon(Icons.fullscreen, color: Colors.white),
+                tooltip: 'Fullscreen',
+                onPressed: _openFullscreen,
+              ),
+            ],
+          ),
+        ),
       ),
+    );
+  }
+}
+
+/// Wraps a player [background] with tap-to-reveal controls. Tapping the video
+/// toggles the [overlay] (which must be a [Positioned]); the controls also fade
+/// out on their own after a few seconds of inactivity, so the stream isn't
+/// cluttered while watching. Interacting with a control resets that timer.
+class _PlayerControls extends StatefulWidget {
+  const _PlayerControls({required this.background, required this.overlay});
+
+  final Widget background;
+  final Widget overlay;
+
+  @override
+  State<_PlayerControls> createState() => _PlayerControlsState();
+}
+
+class _PlayerControlsState extends State<_PlayerControls> {
+  static const _autoHideAfter = Duration(seconds: 3);
+
+  bool _visible = true;
+  Timer? _hideTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleHide();
+  }
+
+  @override
+  void dispose() {
+    _hideTimer?.cancel();
+    super.dispose();
+  }
+
+  void _scheduleHide() {
+    _hideTimer?.cancel();
+    _hideTimer = Timer(_autoHideAfter, () {
+      if (mounted) setState(() => _visible = false);
+    });
+  }
+
+  void _toggle() {
+    setState(() => _visible = !_visible);
+    if (_visible) {
+      _scheduleHide();
+    } else {
+      _hideTimer?.cancel();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: _toggle,
+            child: widget.background,
+          ),
+        ),
+        Positioned.fill(
+          child: AnimatedOpacity(
+            opacity: _visible ? 1 : 0,
+            duration: const Duration(milliseconds: 200),
+            child: IgnorePointer(
+              ignoring: !_visible,
+              // Touching a control keeps the bar alive; taps on empty space
+              // fall through to the GestureDetector above and toggle it.
+              child: Listener(
+                onPointerDown: (_) => _scheduleHide(),
+                child: Stack(children: [widget.overlay]),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Volume control for the player overlays: a mute toggle plus an inline slider
+/// for fine 0–100% adjustment. UI-only for now — it holds the level in state;
+/// wire [_VolumeControlState._effectiveVolume] to a real player's
+/// `setVolume(0.0–1.0)` once one is integrated.
+class _VolumeControl extends StatefulWidget {
+  const _VolumeControl();
+
+  @override
+  State<_VolumeControl> createState() => _VolumeControlState();
+}
+
+class _VolumeControlState extends State<_VolumeControl> {
+  // Last non-zero level the user chose, so unmuting restores it.
+  double _volume = 0.8;
+  bool _muted = false;
+
+  /// What a real player would receive: 0 while muted, otherwise [_volume].
+  double get _effectiveVolume => _muted ? 0 : _volume;
+
+  IconData get _icon {
+    if (_effectiveVolume == 0) return Icons.volume_off;
+    if (_effectiveVolume < 0.5) return Icons.volume_down;
+    return Icons.volume_up;
+  }
+
+  void _onSliderChanged(double value) => setState(() {
+    _volume = value;
+    _muted = value == 0;
+  });
+
+  void _toggleMute() => setState(() => _muted = !_muted);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: Icon(_icon, color: Colors.white),
+          tooltip: _muted ? 'Unmute' : 'Mute',
+          onPressed: _toggleMute,
+        ),
+        SizedBox(
+          width: 110,
+          child: SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 2,
+              activeTrackColor: Colors.white,
+              inactiveTrackColor: Colors.white24,
+              thumbColor: Colors.white,
+              overlayColor: Colors.white24,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+            ),
+            child: Slider(
+              value: _effectiveVolume,
+              onChanged: _onSliderChanged,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -517,10 +677,6 @@ class _FullscreenPlayer extends StatefulWidget {
 }
 
 class _FullscreenPlayerState extends State<_FullscreenPlayer> {
-  bool _muted = false;
-
-  void _toggleMute() => setState(() => _muted = !_muted);
-
   @override
   void initState() {
     super.initState();
@@ -546,44 +702,31 @@ class _FullscreenPlayerState extends State<_FullscreenPlayer> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          const Positioned.fill(
-            child: Center(
-              child: Icon(
-                Icons.play_circle_outline,
-                size: 80,
-                color: Colors.white70,
-              ),
+      body: _PlayerControls(
+        background: const Center(
+          child: Icon(
+            Icons.play_circle_outline,
+            size: 80,
+            color: Colors.white70,
+          ),
+        ),
+        overlay: Positioned(
+          top: 8,
+          right: 8,
+          child: SafeArea(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const _VolumeControl(),
+                IconButton(
+                  icon: const Icon(Icons.fullscreen_exit, color: Colors.white),
+                  tooltip: 'Exit fullscreen',
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
             ),
           ),
-          Positioned(
-            top: 8,
-            right: 8,
-            child: SafeArea(
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      _muted ? Icons.volume_off : Icons.volume_up,
-                      color: Colors.white,
-                    ),
-                    tooltip: _muted ? 'Unmute' : 'Mute',
-                    onPressed: _toggleMute,
-                  ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.fullscreen_exit,
-                      color: Colors.white,
-                    ),
-                    tooltip: 'Exit fullscreen',
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

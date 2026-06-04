@@ -8,6 +8,8 @@ export 'domain/entities/live_stream.dart';
 export 'domain/entities/match_score.dart';
 export 'presentation/cubit/live_stream_cubit.dart';
 export 'presentation/cubit/match_score_cubit.dart';
+export 'presentation/saved/saved_streams_store.dart';
 export 'presentation/view/live_now_page.dart';
 export 'presentation/view/live_stream_page.dart';
+export 'presentation/view/saved_page.dart';
 export 'presentation/view/stream_detail_page.dart';

@@ -1,9 +1,14 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_stream_hive_app/core/di/injection.dart';
 import 'package:flutter_stream_hive_app/core/notifications/notification_manager.dart';
+import 'package:flutter_stream_hive_app/core/router/app_router.dart';
 import 'package:flutter_stream_hive_app/core/theme/theme.dart';
+import 'package:flutter_stream_hive_app/features/live_stream/presentation/saved/saved_streams_store.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/presentation/widgets/home_sections.dart';
 import 'package:flutter_stream_hive_app/features/profile/presentation/content/profile_content.dart';
+import 'package:flutter_stream_hive_app/features/profile/presentation/favorites/favorite_teams_store.dart';
+import 'package:go_router/go_router.dart';
 
 /// The Profile tab: account summary, stats, favourite clubs, recent activity
 /// and an account-settings list. Presentation-only (sample content).
@@ -27,15 +32,24 @@ class ProfilePage extends StatelessWidget {
               profile: kUserProfile,
               stats: kProfileStats,
               onEdit: () => _soon(context, 'Edit profile'),
+              onSavedTap: () => context.pushNamed(AppRoute.saved),
+              onFavoritesTap: () => context.pushNamed(AppRoute.clubs),
             ),
             SectionHeader(
               title: 'My Favorites',
-              onViewAll: () => _soon(context, 'My Favorites'),
+              onViewAll: () => context.pushNamed(AppRoute.clubs),
             ),
-            _FavoritesRow(
-              teams: kFavoriteTeams,
-              onTeam: (t) => _soon(context, t.name),
-              onAddMore: () => _soon(context, 'Add favorite'),
+            ListenableBuilder(
+              listenable: getIt<FavoriteTeamsStore>(),
+              builder: (context, _) => _FavoritesRow(
+                teams: getIt<FavoriteTeamsStore>().items,
+                onTeam: (t) => context.pushNamed(
+                  AppRoute.clubDetail,
+                  pathParameters: {'name': t.name},
+                  extra: t.country,
+                ),
+                onAddMore: () => context.pushNamed(AppRoute.clubs),
+              ),
             ),
             SectionHeader(
               title: 'Recent Activity',
@@ -142,11 +156,42 @@ class _ProfileCard extends StatelessWidget {
     required this.profile,
     required this.stats,
     required this.onEdit,
+    required this.onSavedTap,
+    required this.onFavoritesTap,
   });
 
   final UserProfile profile;
   final List<ProfileStat> stats;
   final VoidCallback onEdit;
+  final VoidCallback onSavedTap;
+  final VoidCallback onFavoritesTap;
+
+  /// Builds a stat tile, binding the Saved/Favorites tiles to their store so
+  /// the count stays live and they navigate on tap.
+  Widget _statTile(ProfileStat stat) {
+    switch (stat.label) {
+      case 'Saved':
+        return ListenableBuilder(
+          listenable: getIt<SavedStreamsStore>(),
+          builder: (context, _) => _StatTile(
+            stat: stat,
+            onTap: onSavedTap,
+            valueOverride: '${getIt<SavedStreamsStore>().items.length}',
+          ),
+        );
+      case 'Favorites':
+        return ListenableBuilder(
+          listenable: getIt<FavoriteTeamsStore>(),
+          builder: (context, _) => _StatTile(
+            stat: stat,
+            onTap: onFavoritesTap,
+            valueOverride: '${getIt<FavoriteTeamsStore>().items.length}',
+          ),
+        );
+      default:
+        return _StatTile(stat: stat);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -195,7 +240,7 @@ class _ProfileCard extends StatelessWidget {
           ),
           Row(
             children: [
-              for (final s in stats) Expanded(child: _StatTile(stat: s)),
+              for (final s in stats) Expanded(child: _statTile(s)),
             ],
           ),
         ],
@@ -315,31 +360,45 @@ class _MemberBadge extends StatelessWidget {
 }
 
 class _StatTile extends StatelessWidget {
-  const _StatTile({required this.stat});
+  const _StatTile({required this.stat, this.onTap, this.valueOverride});
 
   final ProfileStat stat;
+  final VoidCallback? onTap;
+
+  /// When set, shown instead of [ProfileStat.value] (e.g. a live count).
+  final String? valueOverride;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Icon(stat.icon, color: stat.color, size: 22),
-        const SizedBox(height: 6),
-        Text(
-          stat.value,
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-          ),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Column(
+          children: [
+            Icon(stat.icon, color: stat.color, size: 22),
+            const SizedBox(height: 6),
+            Text(
+              valueOverride ?? stat.value,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              stat.label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 11,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 2),
-        Text(
-          stat.label,
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
-        ),
-      ],
+      ),
     );
   }
 }
