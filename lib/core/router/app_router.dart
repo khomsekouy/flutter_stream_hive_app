@@ -15,7 +15,9 @@ abstract final class AppRoute {
   static const String onboarding = 'onboarding';
   static const String home = 'home';
   static const String live = 'live';
+  static const String upcoming = 'upcoming';
   static const String matches = 'matches';
+  static const String matchDetail = 'matchDetail';
   static const String streamDetail = 'streamDetail';
   static const String highlights = 'highlights';
   static const String profile = 'profile';
@@ -95,6 +97,12 @@ abstract final class AppRouter {
         builder: (context, state) => const LiveNowPage(),
       ),
       GoRoute(
+        path: '/upcoming',
+        name: AppRoute.upcoming,
+        parentNavigatorKey: _rootKey,
+        builder: (context, state) => const UpcomingPage(),
+      ),
+      GoRoute(
         path: '/saved',
         name: AppRoute.saved,
         parentNavigatorKey: _rootKey,
@@ -114,6 +122,15 @@ abstract final class AppRouter {
           clubName: state.pathParameters['name']!,
           country: state.extra as String?,
         ),
+      ),
+      // Match-day details (H2H + previous meetings). The fixture is handed in
+      // via `extra`; the :id keeps the route addressable.
+      GoRoute(
+        path: '/match/:id',
+        name: AppRoute.matchDetail,
+        parentNavigatorKey: _rootKey,
+        builder: (context, state) =>
+            MatchDetailPage(match: state.extra as LiveStream?),
       ),
       // Full-screen detail: pushed on the root navigator so it covers the
       // shell (no bottom nav) and Back returns to the active tab.

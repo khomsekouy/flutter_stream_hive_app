@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_stream_hive_app/core/theme/theme.dart';
-
+import 'package:iconly/iconly.dart';
 /// The "SPORT LIVE" wordmark used in the home app bar — white "SPORT" beside a
 /// red "LIVE" tag.
 class SportLiveLogo extends StatelessWidget {
@@ -98,11 +98,11 @@ class HomeNavItem {
 
 /// The app's primary bottom-nav destinations, shared across screens so the bar
 /// is identical everywhere. Index 2 (Highlights) is the route currently wired.
-const List<HomeNavItem> kMainNavItems = [
-  HomeNavItem(icon: Icons.home_filled, label: 'Home'),
-  HomeNavItem(icon: Icons.calendar_today, label: 'Matches'),
-  HomeNavItem(icon: Icons.smart_display, label: 'Highlights'),
-  HomeNavItem(icon: Icons.person_outline, label: 'Profile'),
+ List<HomeNavItem> kMainNavItems = [
+  const HomeNavItem(icon: IconlyBroken.home, label: 'Home'),
+  const HomeNavItem(icon: IconlyBroken.calendar, label: 'Matches'),
+  const HomeNavItem(icon: IconlyBroken.video, label: 'Highlights'),
+  const HomeNavItem(icon: IconlyBroken.profile, label: 'Profile'),
 ];
 
 /// Items are split around the centre FAB: indices 0..1 sit left, 2..3 right.

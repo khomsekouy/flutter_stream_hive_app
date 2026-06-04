@@ -56,6 +56,12 @@ class _LiveStreamViewState extends State<LiveStreamView> {
     extra: stream,
   );
 
+  void _openMatchDetail(LiveStream stream) => context.pushNamed(
+    AppRoute.matchDetail,
+    pathParameters: {'id': stream.id},
+    extra: stream,
+  );
+
   void _comingSoon(String label) =>
       NotificationManager.info(context, '$label — coming soon');
 
@@ -104,8 +110,10 @@ class _LiveStreamViewState extends State<LiveStreamView> {
                   matchesLeague: _matchesLeague,
                   onLeagueSelected: (i) => setState(() => _league = i),
                   onOpenDetail: _openDetail,
+                  onOpenMatchDetail: _openMatchDetail,
                   onViewAll: _comingSoon,
                   onOpenLive: () => context.pushNamed(AppRoute.live),
+                  onOpenUpcoming: () => context.pushNamed(AppRoute.upcoming),
                   onOpenHighlights: () =>
                       context.goNamed(AppRoute.highlights),
                 ),
@@ -125,8 +133,10 @@ class _Dashboard extends StatelessWidget {
     required this.matchesLeague,
     required this.onLeagueSelected,
     required this.onOpenDetail,
+    required this.onOpenMatchDetail,
     required this.onViewAll,
     required this.onOpenLive,
+    required this.onOpenUpcoming,
     required this.onOpenHighlights,
   });
 
@@ -135,8 +145,10 @@ class _Dashboard extends StatelessWidget {
   final bool Function(LiveStream) matchesLeague;
   final ValueChanged<int> onLeagueSelected;
   final ValueChanged<LiveStream> onOpenDetail;
+  final ValueChanged<LiveStream> onOpenMatchDetail;
   final ValueChanged<String> onViewAll;
   final VoidCallback onOpenLive;
+  final VoidCallback onOpenUpcoming;
   final VoidCallback onOpenHighlights;
 
   static String _formatKickOff(DateTime? start) {
@@ -184,7 +196,7 @@ class _Dashboard extends StatelessWidget {
         // ---- Upcoming Matches ----
         SectionHeader(
           title: 'Upcoming Matches',
-          onViewAll: () => onViewAll('Upcoming Matches'),
+          onViewAll: onOpenUpcoming,
         ),
         if (upcoming.isEmpty)
           const _EmptyRow(text: 'No upcoming matches in this league.')
@@ -193,7 +205,7 @@ class _Dashboard extends StatelessWidget {
             (s) => UpcomingMatchCard(
               match: s,
               kickOff: _formatKickOff(s.startTime),
-              onDetails: () => onOpenDetail(s),
+              onDetails: () => onOpenMatchDetail(s),
             ),
           ),
 

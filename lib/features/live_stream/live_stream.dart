@@ -13,3 +13,4 @@ export 'presentation/view/live_now_page.dart';
 export 'presentation/view/live_stream_page.dart';
 export 'presentation/view/saved_page.dart';
 export 'presentation/view/stream_detail_page.dart';
+export 'presentation/view/upcoming_page.dart';

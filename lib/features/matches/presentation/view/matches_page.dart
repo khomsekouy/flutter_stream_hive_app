@@ -49,7 +49,7 @@ class _MatchesViewState extends State<MatchesView> {
   }
 
   void _openDetail(LiveStream s) => context.pushNamed(
-    AppRoute.streamDetail,
+    AppRoute.matchDetail,
     pathParameters: {'id': s.id},
     extra: s,
   );

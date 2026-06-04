@@ -3,4 +3,5 @@ library;
 
 export 'domain/entities/matches.dart';
 export 'presentation/cubit/matches_cubit.dart';
+export 'presentation/view/match_detail_page.dart';
 export 'presentation/view/matches_page.dart';
