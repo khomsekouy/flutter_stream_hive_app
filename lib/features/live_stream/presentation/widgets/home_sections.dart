@@ -685,14 +685,38 @@ class NewsTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(
-              Icons.bookmark_border,
-              size: 20,
-              color: AppColors.textSecondary,
-            ),
+            const _NewsBookmarkButton(),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Tappable bookmark for a news row: toggles between saved and unsaved.
+class _NewsBookmarkButton extends StatefulWidget {
+  const _NewsBookmarkButton();
+
+  @override
+  State<_NewsBookmarkButton> createState() => _NewsBookmarkButtonState();
+}
+
+class _NewsBookmarkButtonState extends State<_NewsBookmarkButton> {
+  bool _saved = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(),
+      tooltip: _saved ? 'Remove from saved' : 'Save',
+      icon: Icon(
+        _saved ? Icons.bookmark : Icons.bookmark_border,
+        size: 20,
+        color: _saved ? AppColors.info : AppColors.textSecondary,
+      ),
+      onPressed: () => setState(() => _saved = !_saved),
     );
   }
 }

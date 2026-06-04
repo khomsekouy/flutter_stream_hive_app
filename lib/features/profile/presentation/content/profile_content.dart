@@ -114,18 +114,38 @@ const List<ProfileStat> kProfileStats = [
     label: 'Watch Time',
   ),
   ProfileStat(
-    icon: Icons.emoji_events,
+    icon: Icons.bookmark,
     color: AppColors.warning,
     value: '12',
-    label: 'Achievements',
+    label: 'Saved',
   ),
 ];
 
+/// Clubs the user follows by default (seeds the favorites store).
 const List<FavoriteTeam> kFavoriteTeams = [
   FavoriteTeam(name: 'Real Madrid', country: 'Spain'),
   FavoriteTeam(name: 'Manchester City', country: 'England'),
   FavoriteTeam(name: 'Barcelona', country: 'Spain'),
   FavoriteTeam(name: 'Bayern München', country: 'Germany'),
+];
+
+/// The full club catalogue shown on the "Browse clubs" screen. Names match the
+/// keys in `ClubLogo` so each row gets its crest.
+const List<FavoriteTeam> kAllClubs = [
+  FavoriteTeam(name: 'Arsenal', country: 'England'),
+  FavoriteTeam(name: 'Chelsea', country: 'England'),
+  FavoriteTeam(name: 'Liverpool', country: 'England'),
+  FavoriteTeam(name: 'Manchester City', country: 'England'),
+  FavoriteTeam(name: 'Manchester United', country: 'England'),
+  FavoriteTeam(name: 'Real Madrid', country: 'Spain'),
+  FavoriteTeam(name: 'Barcelona', country: 'Spain'),
+  FavoriteTeam(name: 'Atlético Madrid', country: 'Spain'),
+  FavoriteTeam(name: 'Juventus', country: 'Italy'),
+  FavoriteTeam(name: 'AC Milan', country: 'Italy'),
+  FavoriteTeam(name: 'Inter', country: 'Italy'),
+  FavoriteTeam(name: 'Bayern München', country: 'Germany'),
+  FavoriteTeam(name: 'Paris Saint-Germain', country: 'France'),
+  FavoriteTeam(name: 'FC Porto', country: 'Portugal'),
 ];
 
 const List<ActivityItem> kRecentActivity = [

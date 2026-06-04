@@ -16,6 +16,9 @@ import 'package:flutter_stream_hive_app/features/live_stream/domain/usecases/wat
 import 'package:flutter_stream_hive_app/features/live_stream/presentation/cubit/live_stream_cubit.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/presentation/cubit/match_score_cubit.dart';
 import 'package:flutter_stream_hive_app/features/live_stream/presentation/cubit/stream_detail_cubit.dart';
+import 'package:flutter_stream_hive_app/features/live_stream/presentation/saved/saved_streams_store.dart';
+import 'package:flutter_stream_hive_app/features/profile/presentation/content/profile_content.dart';
+import 'package:flutter_stream_hive_app/features/profile/presentation/favorites/favorite_teams_store.dart';
 import 'package:get_it/get_it.dart';
 
 final GetIt getIt = GetIt.instance;
@@ -25,6 +28,10 @@ Future<void> configureDependencies() async {
   getIt
     // ---- Core ----
     ..registerLazySingleton<Dio>(buildDioClient)
+    ..registerLazySingleton(SavedStreamsStore.new)
+    ..registerLazySingleton(
+      () => FavoriteTeamsStore(initial: kFavoriteTeams),
+    )
     // ---- Data sources (fakes for now) ----
     ..registerLazySingleton<LiveStreamRemoteDataSource>(
       FakeLiveStreamRemoteDataSource.new,
